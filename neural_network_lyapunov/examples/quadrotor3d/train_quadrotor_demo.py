@@ -239,10 +239,10 @@ if __name__ == "__main__":
     plant = quadrotor.Quadrotor(dtype)
     u_equilibrium = plant.hover_thrust * torch.ones((4, ), dtype=dtype)
     x_lo = torch.tensor([
-        -0.02, -0.02, -0.02, -0.02 * np.pi, -0.02 * np.pi, -0.02 * np.pi, -0.2,
-        -0.2, -0.2, -np.pi * 0.04, -np.pi * 0.04, -np.pi * 0.04
+        -0.02, -0.02, -0.02, -0.02 * np.pi, -0.02 * np.pi, -0.02 * np.pi, -0.1,
+        -0.1, -0.1, -np.pi * 0.04, -np.pi * 0.04, -np.pi * 0.04
     ],
-                        dtype=dtype)
+                        dtype=dtype) 
     x_up = -x_lo
     u_lo = torch.zeros((4, ), dtype=dtype)
     u_up = 3 * u_equilibrium
@@ -317,7 +317,7 @@ if __name__ == "__main__":
     dut.lyapunov_derivative_mip_params = {
         gurobipy.GRB.Attr.MIPGap: 1.,
         gurobipy.GRB.Param.OutputFlag: True,
-        gurobipy.GRB.Param.TimeLimit: 900,
+        gurobipy.GRB.Param.TimeLimit: 600,
         gurobipy.GRB.Param.MIPFocus: 1
     }
     state_samples_all = utils.uniform_sample_in_box(x_lo, x_up, 10000)
@@ -329,14 +329,16 @@ if __name__ == "__main__":
     dut.enable_wandb = args.enable_wandb
     if args.train_adversarial:
         options = train_lyapunov.TrainLyapunovReLU.AdversarialTrainingOptions()
-        options.num_batches = 10
-        options.num_epochs_per_mip = 5
-        options.positivity_samples_pool_size = 50000
-        options.derivative_samples_pool_size = 100000
-        dut.lyapunov_positivity_mip_pool_solutions = 100
-        dut.lyapunov_derivative_mip_pool_solutions = 1000
+        options.num_batches = 50
+        options.num_epochs_per_mip = 20
+        options.positivity_samples_pool_size = 500000
+        options.derivative_samples_pool_size = 500000
+        dut.lyapunov_positivity_mip_pool_solutions = 500
+        dut.lyapunov_derivative_mip_pool_solutions = 2000
         dut.add_positivity_adversarial_state = True
         dut.add_derivative_adversarial_state = True
+        dut.add_adversarial_state_only = True
+        dut.sample_loss_reduction = "mean"
         if args.training_set:
             training_set = torch.load(args.training_set)
             positivity_state_samples_init = training_set[
@@ -345,7 +347,7 @@ if __name__ == "__main__":
                 "derivative_state_samples_all"]
         else:
             positivity_state_samples_init = utils.uniform_sample_in_box(
-                x_lo, x_up, 1000)
+                x_lo, x_up, 100000)
             derivative_state_samples_init = positivity_state_samples_init
         result = dut.train_adversarial(positivity_state_samples_init,
                                        derivative_state_samples_init, options)

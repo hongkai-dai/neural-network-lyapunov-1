@@ -262,7 +262,7 @@ if __name__ == "__main__":
 
     q_equilibrium = torch.tensor([0, 0, 0], dtype=dtype)
     u_equilibrium = plant.u_equilibrium
-    x_lo = torch.tensor([-0.3, -0.3, -np.pi * 0.3, -1.5, -1.5, -0.9],
+    x_lo = torch.tensor([-0.45, -0.45, -np.pi * 0.45, -2.5, -2.5, -1.5],
                         dtype=dtype)
     x_up = -x_lo
     u_lo = torch.tensor([0, 0], dtype=dtype)
@@ -333,11 +333,14 @@ if __name__ == "__main__":
         dut.lyapunov_derivative_mip_pool_solutions = 500
         dut.add_derivative_adversarial_state = True
         dut.add_positivity_adversarial_state = True
+        dut.sample_loss_reduction = "max"
         positivity_state_samples_init = utils.uniform_sample_in_box(
-            x_lo, x_up, 1000)
+            x_lo, x_up, 10000)
         derivative_state_samples_init = positivity_state_samples_init
         result = dut.train_adversarial(positivity_state_samples_init,
                                        derivative_state_samples_init, options)
     else:
         dut.train(torch.empty((0, 6), dtype=dtype))
+    utils.save_lyapunov_model(lyapunov_relu, V_lambda, dut.lyapunov_positivity_epsilon, dut.lyapunov_derivative_epsilon, dut.lyapunov_derivative_eps_type, R_options, "lyapunov33_trained.pt")
+    utils.save_controller_model(controller_relu, x_lo, x_up, u_lo, u_up, "controller33_trained.pt")
     pass

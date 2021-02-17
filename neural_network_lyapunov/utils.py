@@ -1034,7 +1034,7 @@ def step_system(system, x_start, steps):
 
 def simulate_plant_with_controller(plant, controller_relu, t_span,
                                    x_equilibrium, u_equilibrium, u_lo, u_up,
-                                   x0):
+                                   x0, t_eval=None):
     """
     Simulate a continuous time system with a controller. The controller is
     computed as u = saturate(ϕ(x) − ϕ(x*) + u*)
@@ -1050,9 +1050,7 @@ def simulate_plant_with_controller(plant, controller_relu, t_span,
     result = scipy.integrate.solve_ivp(dyn,
                                        t_span,
                                        x0,
-                                       t_eval=np.arange(start=t_span[0],
-                                                        stop=t_span[1],
-                                                        step=0.01))
+                                       t_eval=t_eval)
     return result
 
 
