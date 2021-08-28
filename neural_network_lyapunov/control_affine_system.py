@@ -139,9 +139,9 @@ class LinearSystem(ControlPiecewiseAffineSystem):
             self.x_up)
 
     def compute_G_range_ia(self):
-        G_lo = self.B.reshape((-1, ))
-        G_up = self.B.reshape((-1, ))
-        return G_lo, G_up
+        G_flat_lo = self.B.reshape((-1, ))
+        G_flat_up = self.B.reshape((-1, ))
+        return G_flat_lo, G_flat_up
 
 
 class SecondOrderControlAffineSystem(ControlPiecewiseAffineSystem):
