@@ -1,4 +1,5 @@
 import torch
+import gurobipy
 import neural_network_lyapunov.gurobi_torch_mip as gurobi_torch_mip
 import neural_network_lyapunov.utils as utils
 import neural_network_lyapunov.mip_utils as mip_utils
@@ -103,6 +104,25 @@ class ControlPiecewiseAffineSystem:
           G_lo, G_up: G_lo/G_up is the lower/upper bound of G.reshape((-1,))
         """
         raise NotImplementedError
+
+    def can_be_equilibrium_state(self, x: torch.Tensor) -> bool:
+        """
+        Checks if the system can remain equilibrium at x. Namely
+        ∃ u ∈ [u_lo, u_up] such that f(x) + G(x)u = 0
+        """
+        f = self.f(x)
+        G = self.G(x)
+        model = gurobipy.Model()
+        u = model.addMVar(self.u_dim,
+                          lb=self.u_lo.detach().numpy(),
+                          ub=self.u_up.detach().numpy())
+        model.addMConstrs(G.detach().numpy(),
+                          u,
+                          sense=gurobipy.GRB.EQUAL,
+                          b=-f.detach().numpy())
+        model.setParam(gurobipy.GRB.Param.OutputFlag, False)
+        model.optimize()
+        return model.status == gurobipy.GRB.OPTIMAL
 
 
 class LinearSystem(ControlPiecewiseAffineSystem):
