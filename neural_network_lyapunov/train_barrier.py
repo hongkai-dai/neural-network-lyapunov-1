@@ -129,19 +129,19 @@ class TrainBarrier:
         3. hinge(−ḣ(xⁱ) − εh(xⁱ)) xⁱ in derivative_state_samples
         """
         total_loss = torch.tensor(0, dtype=self.barrier_system.system.dtype)
-        if unsafe_state_samples_weight is not None:
+        if unsafe_state_samples_weight is not None and unsafe_state_samples.shape[0] > 0:
             h_unsafe = self.barrier_system.barrier_value(
                 unsafe_state_samples, self.x_star, self.c)
             total_loss += unsafe_state_samples_weight * \
                 torch.nn.HingeEmbeddingLoss(margin=0., reduction="mean")(
                     -h_unsafe, torch.tensor(-1))
-        if boundary_state_samples_weight is not None:
+        if boundary_state_samples_weight is not None and boundary_state_samples.shape[0] > 0:
             h_boundary = self.barrier_system.barrier_value(
                 boundary_state_samples, self.x_star, self.c)
             total_loss += boundary_state_samples_weight * \
                 torch.nn.HingeEmbeddingLoss(margin=0., reduction="mean")(
                     -h_boundary, torch.tensor(-1))
-        if derivative_state_samples_weight is not None:
+        if derivative_state_samples_weight is not None and derivative_state_samples.shape[0] > 0:
             hdot = torch.stack([
                 torch.min(
                     self.barrier_system.barrier_derivative(
@@ -337,7 +337,7 @@ class TrainBarrier:
             if self.output_flag:
                 print(f"Iter {iter_count}, " +
                       f"loss {total_loss_return.loss.item()},")
-            if total_loss_return.loss < 0:
+            if total_loss_return.loss <= 0:
                 return
             total_loss_return.loss.backward()
             optimizer.step()
