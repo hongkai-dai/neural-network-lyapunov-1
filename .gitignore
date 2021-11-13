@@ -143,3 +143,6 @@ notebooks/*.p
 *.DS_Store
 
 *wandb
+
+# virtual environment
+*_venv
