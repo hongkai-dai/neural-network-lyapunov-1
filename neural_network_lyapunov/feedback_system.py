@@ -24,13 +24,13 @@ import neural_network_lyapunov.mip_utils as mip_utils
 
 
 class ControllerMipConstraintReturn:
-    def __init__(self, nn_input, slack, binary, u_lower_bound, u_upper_bound,
+    def __init__(self, nn_input, slack, binary, u_lb_IA, u_ub_IA,
                  relu_input_lo, relu_input_up, relu_output_lo, relu_output_up):
         self.nn_input = nn_input
         self.slack = slack
         self.binary = binary
-        self.u_lower_bound = u_lower_bound
-        self.u_upper_bound = u_upper_bound
+        self.u_lb_IA = u_lb_IA
+        self.u_ub_IA = u_ub_IA
         self.relu_input_lo = relu_input_lo
         self.relu_input_up = relu_input_up
         self.relu_output_lo = relu_output_lo
@@ -155,14 +155,14 @@ class FeedbackSystem:
             relu_x_equilibrium + self.u_equilibrium
         u_pre_sat_up = controller_network_output_up -\
             relu_x_equilibrium + self.u_equilibrium
-        u_lower_bound, u_upper_bound = _add_input_saturation_constraint(
+        u_lb_IA, u_ub_IA = _add_input_saturation_constraint(
             prog, u_var, u_pre_sat, self.u_lower_limit, self.u_upper_limit,
             u_pre_sat_lo, u_pre_sat_up, self.dtype, binary_var_type)
         # Note that controller_binary only contains the binary variables in
         # the relu network. It doesn't contain the binary variables in the
         # saturation block.
-        return controller_slack, controller_binary, u_lower_bound,\
-            u_upper_bound, controller_pre_relu_lo, controller_pre_relu_up
+        return controller_slack, controller_binary, u_lb_IA,\
+            u_ub_IA, controller_pre_relu_lo, controller_pre_relu_up
 
     def _add_network_controller_mip_constraint(self, mip, x_var, u_var,
                                                controller_slack_var_name,
@@ -181,7 +181,7 @@ class FeedbackSystem:
                 network_input_lo, network_input_up,
                 self.controller_network_bound_propagate_method)
 
-        controller_slack, controller_binary, u_lower_bound, u_upper_bound,\
+        controller_slack, controller_binary, u_lb_IA, u_ub_IA,\
             controller_pre_relu_lo, controller_pre_relu_up =\
             self._add_network_controller_mip_constraint_given_relu_bound(
                 mip, x_var, u_var, controller_pre_relu_lo,
@@ -193,8 +193,8 @@ class FeedbackSystem:
             nn_input=x_var,
             slack=controller_slack,
             binary=controller_binary,
-            u_lower_bound=u_lower_bound,
-            u_upper_bound=u_upper_bound,
+            u_lb_IA=u_lb_IA,
+            u_ub_IA=u_ub_IA,
             relu_input_lo=controller_pre_relu_lo,
             relu_input_up=controller_pre_relu_up,
             relu_output_lo=controller_post_relu_lo,
@@ -237,11 +237,11 @@ class FeedbackSystem:
             network_at_x_equilibrium + self.u_equilibrium
         u_pre_sat_up = controller_network_output_up -\
             network_at_x_equilibrium + self.u_equilibrium
-        u_lower_bound, u_upper_bound = _add_input_saturation_constraint(
+        u_lb_IA, u_ub_IA = _add_input_saturation_constraint(
             mip, u_var, u_pre_sat, self.u_lower_limit, self.u_upper_limit,
             u_pre_sat_lo, u_pre_sat_up, self.dtype, binary_var_type)
-        return controller_slack, controller_binary, u_lower_bound,\
-            u_upper_bound
+        return controller_slack, controller_binary, u_lb_IA,\
+            u_ub_IA
 
     def _add_controller_mip_constraint(self, mip, x_var, u_var,
                                        controller_slack_var_name,
@@ -256,21 +256,21 @@ class FeedbackSystem:
                 nn_input=x_var,
                 slack=nn_controller_mip_cnstr_return.slack,
                 binary=nn_controller_mip_cnstr_return.binary,
-                u_lower_bound=nn_controller_mip_cnstr_return.u_lower_bound,
-                u_upper_bound=nn_controller_mip_cnstr_return.u_upper_bound,
+                u_lb_IA=nn_controller_mip_cnstr_return.u_lb_IA,
+                u_up_IA=nn_controller_mip_cnstr_return.u_ub_IA,
                 relu_input_lo=nn_controller_mip_cnstr_return.relu_input_lo,
                 relu_input_up=nn_controller_mip_cnstr_return.relu_input_up,
                 relu_output_lo=nn_controller_mip_cnstr_return.relu_output_lo,
                 relu_output_up=nn_controller_mip_cnstr_return.relu_output_up)
         elif isinstance(self.controller_network, torch.nn.Linear):
-            controller_slack, controller_binary, u_lower_bound, u_upper_bound\
+            controller_slack, controller_binary, u_lb_IA, u_ub_IA\
                 = self._add_linear_controller_mip_constraint(
                     mip, x_var, u_var, binary_var_type)
             return ControllerMipConstraintReturn(nn_input=None,
                                                  slack=controller_slack,
                                                  binary=controller_binary,
-                                                 u_lower_bound=u_lower_bound,
-                                                 u_upper_bound=u_upper_bound,
+                                                 u_lb_IA=u_lb_IA,
+                                                 u_ub_IA=u_ub_IA,
                                                  relu_input_lo=None,
                                                  relu_input_up=None,
                                                  relu_output_lo=None,
@@ -345,8 +345,8 @@ class FeedbackSystem:
             self.forward_system.add_dynamics_constraint(
                 mip, x_var, x_next_var, u, forward_slack_var_name,
                 forward_binary_var_name,
-                additional_u_lo=controller_mip_cnstr_return.u_lower_bound,
-                additional_u_up=controller_mip_cnstr_return.u_upper_bound,
+                additional_u_lo=controller_mip_cnstr_return.u_lb_IA,
+                additional_u_up=controller_mip_cnstr_return.u_ub_IA,
                 binary_var_type=binary_var_type)
 
         return u, forward_dynamics_return, controller_mip_cnstr_return

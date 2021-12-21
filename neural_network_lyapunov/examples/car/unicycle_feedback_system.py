@@ -131,12 +131,12 @@ class UnicycleFeedbackSystem(feedback_system.FeedbackSystem):
         u_pre_sat_up = controller_network_output_up - relu_at_zero +\
             torch.stack((self.lambda_u * torch.sum(s_ub),
                          torch.tensor(0, dtype=self.dtype)))
-        u_lower_bound, u_upper_bound = \
+        u_lb_IA, u_ub_IA = \
             feedback_system._add_input_saturation_constraint(
                 prog, u_var, u_pre_sat, self.u_lower_limit, self.u_upper_limit,
                 u_pre_sat_lo, u_pre_sat_up, self.dtype, binary_var_type)
-        return controller_slack, controller_binary, u_lower_bound,\
-            u_upper_bound, controller_pre_relu_lo, controller_pre_relu_up
+        return controller_slack, controller_binary, u_lb_IA,\
+            u_ub_IA, controller_pre_relu_lo, controller_pre_relu_up
 
     def controller_variables(self):
         return list(self.controller_network.parameters()

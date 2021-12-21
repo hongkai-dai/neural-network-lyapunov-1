@@ -103,8 +103,8 @@ class TestUnicycleFeedbackSystem(unittest.TestCase):
             self.dut._add_network_controller_mip_constraint(
                 mip, x_var, u_var, "controlelr_slack", "controller_binary",
                 binary_var_type=gurobipy.GRB.BINARY)
-        u_lower_bound = controller_mip_cnstr_return.u_lower_bound
-        u_upper_bound = controller_mip_cnstr_return.u_upper_bound
+        u_lb_IA = controller_mip_cnstr_return.u_lb_IA
+        u_ub_IA = controller_mip_cnstr_return.u_ub_IA
         mip.gurobi_model.setParam(gurobipy.GRB.Param.OutputFlag, False)
         mip.gurobi_model.optimize()
         if torch.all(x_val <= self.x_up) and torch.all(x_val >= self.x_lo):
@@ -114,8 +114,8 @@ class TestUnicycleFeedbackSystem(unittest.TestCase):
             np.testing.assert_allclose(
                 u_sol, self.dut.compute_u(x_val).detach().numpy(), atol=1E-6)
             np.testing.assert_array_less(u_sol,
-                                         u_upper_bound.detach().numpy() + 1E-6)
-            np.testing.assert_array_less(u_lower_bound.detach().numpy() - 1E-6,
+                                         u_ub_IA.detach().numpy() + 1E-6)
+            np.testing.assert_array_less(u_lb_IA.detach().numpy() - 1E-6,
                                          u_sol)
         else:
             self.assertNotEqual(mip.gurobi_model.status,
@@ -151,7 +151,7 @@ class TestUnicycleFeedbackSystem(unittest.TestCase):
             mip.gurobi_model.optimize()
             self.assertLessEqual(
                 mip.gurobi_model.ObjVal,
-                network_controller_mip_cnstr_return.u_upper_bound[i])
+                network_controller_mip_cnstr_return.u_ub_IA[i])
             mip.setObjective([torch.tensor([1.], dtype=self.dtype)],
                              [[u_var[i]]],
                              0.,
@@ -159,7 +159,7 @@ class TestUnicycleFeedbackSystem(unittest.TestCase):
             mip.gurobi_model.optimize()
             self.assertGreaterEqual(
                 mip.gurobi_model.ObjVal,
-                network_controller_mip_cnstr_return.u_lower_bound[i])
+                network_controller_mip_cnstr_return.u_lb_IA[i])
 
 
 if __name__ == "__main__":

@@ -722,8 +722,8 @@ class TestFeedbackSystem(unittest.TestCase):
             controller_mip_cnstr_return.u_lower_bound.detach().numpy(),
             controller_mip_cnstr_return_lp.u_lower_bound.detach().numpy())
         np.testing.assert_allclose(
-            controller_mip_cnstr_return.u_upper_bound.detach().numpy(),
-            controller_mip_cnstr_return_lp.u_upper_bound.detach().numpy())
+            controller_mip_cnstr_return.u_ub_IA.detach().numpy(),
+            controller_mip_cnstr_return_lp.u_ub_IA.detach().numpy())
 
     def test_add_controller_mip_constraint(self):
         """
@@ -770,18 +770,18 @@ class TestAddInputSaturationConstraint(unittest.TestCase):
         u_dim = len(u_lower_limit)
         u_var = mip.addVars(u_dim, lb=-gurobipy.GRB.INFINITY)
         u_pre_sat = mip.addVars(u_dim, lb=-gurobipy.GRB.INFINITY)
-        u_lower_bound, u_upper_bound = \
+        u_lb_IA, u_ub_IA = \
             feedback_system._add_input_saturation_constraint(
                 mip, u_var, u_pre_sat, u_lower_limit, u_upper_limit,
                 u_pre_sat_lo, u_pre_sat_up, dtype,
                 binary_var_type=gurobipy.GRB.BINARY)
         for i in range(u_dim):
             self.assertEqual(
-                u_lower_bound[i].item(),
+                u_lb_IA[i].item(),
                 torch.clamp(u_pre_sat_lo[i], u_lower_limit[i],
                             u_upper_limit[i]).item())
             self.assertEqual(
-                u_upper_bound[i].item(),
+                u_ub_IA[i].item(),
                 torch.clamp(u_pre_sat_up[i], u_lower_limit[i],
                             u_upper_limit[i]).item())
         # Now take many samples of u_pre, make sure u_var is the result of the
@@ -814,9 +814,9 @@ class TestAddInputSaturationConstraint(unittest.TestCase):
                 u_pre_sat_lo, u_pre_sat_up, dtype,
                 binary_var_type=gurobipy.GRB.CONTINUOUS)
         self.assertEqual(len(lp.zeta), 0)
-        np.testing.assert_allclose(u_lower_bound.detach().numpy(),
+        np.testing.assert_allclose(u_lb_IA.detach().numpy(),
                                    u_lower_bound_lp.detach().numpy())
-        np.testing.assert_allclose(u_upper_bound.detach().numpy(),
+        np.testing.assert_allclose(u_ub_IA.detach().numpy(),
                                    u_upper_bound_lp.detach().numpy())
 
     def test_add_input_saturation_constraints(self):

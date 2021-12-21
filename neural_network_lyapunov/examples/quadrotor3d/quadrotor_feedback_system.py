@@ -74,8 +74,8 @@ class QuadrotorFeedbackSystem(feedback_system.FeedbackSystem):
                     controller_network_input_up,
                     self.controller_network_bound_propagate_method)
 
-            controller_slack, controller_binary, u_lower_bound,\
-                u_upper_bound, controller_relu_input_lo,\
+            controller_slack, controller_binary, u_lb_IA,\
+                u_ub_IA, controller_relu_input_lo,\
                 controller_relu_input_up =\
                 self._add_network_controller_mip_constraint_given_relu_bound(
                     mip,
@@ -95,8 +95,8 @@ class QuadrotorFeedbackSystem(feedback_system.FeedbackSystem):
                     nn_input=x_var,
                     slack=controller_slack,
                     binary=controller_binary,
-                    u_lower_bound=u_lower_bound,
-                    u_upper_bound=u_upper_bound,
+                    u_lb_IA=u_lb_IA,
+                    u_ub_IA=u_ub_IA,
                     relu_input_lo=controller_relu_input_lo,
                     relu_input_up=controller_relu_input_up,
                     relu_output_lo=controller_relu_output_lo,
@@ -105,9 +105,9 @@ class QuadrotorFeedbackSystem(feedback_system.FeedbackSystem):
             # Now compute the bounds on the ReLU units of the forward
             # dynamic network through LP.
             forward_network_u_lo = torch.max(self.forward_system.u_lo,
-                                             u_lower_bound)
+                                             u_lb_IA)
             forward_network_u_up = torch.min(self.forward_system.u_up,
-                                             u_upper_bound)
+                                             u_ub_IA)
 
             def create_prog_callback():
                 prog = gurobi_torch_mip.GurobiTorchMILP(self.dtype)
@@ -140,8 +140,8 @@ class QuadrotorFeedbackSystem(feedback_system.FeedbackSystem):
             forward_dynamics_return = \
                 self.forward_system.add_dynamics_constraint(
                     mip, x_var, x_next_var, u_var, forward_slack_var_name,
-                    forward_binary_var_name, additional_u_lo=u_lower_bound,
-                    additional_u_up=u_upper_bound,
+                    forward_binary_var_name, additional_u_lo=u_lb_IA,
+                    additional_u_up=u_ub_IA,
                     create_lp_prog_callback=create_prog_callback,
                     binary_var_type=binary_var_type)
             return u_var, forward_dynamics_return, controller_mip_cnstr_return
